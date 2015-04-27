@@ -11,7 +11,7 @@
 #  version 2.1 of the License, or (at your option) any later version.
 #
 #  Requires: Python 2.7/3.3+
-
+from urllib2 import Request, urlopen, URLError
 
 __version__ = '0.2.5dev'
 
@@ -482,19 +482,30 @@ def get_historical_prices(symbol, start_date, end_date):
     })
     url = 'http://real-chart.finance.yahoo.com/table.csv?%s' % params
     req = Request(url)
-    resp = urlopen(req)
-    content = str(resp.read().decode('utf-8').strip())
-    daily_data = content.splitlines()
-    hist_dict = dict()
-    keys = daily_data[0].split(',')
-    for day in daily_data[1:]:
-        day_data = day.split(',')
-        date = day_data[0]
-        hist_dict[date] = \
-            {keys[1]: day_data[1],
-             keys[2]: day_data[2],
-             keys[3]: day_data[3],
-             keys[4]: day_data[4],
-             keys[5]: day_data[5],
-             keys[6]: day_data[6]}
-    return hist_dict
+    try:
+        resp = urlopen(req)
+    except URLError as e:
+        if hasattr(e, 'reason'):
+            closed = "The Market was closed on this day."
+            print closed
+            raise SystemExit()
+        elif hasattr(e, 'code'):
+            print 'The server couldn\'t fulfill the request.'
+            print 'Error code:', e.code
+            raise SystemExit()
+    else:
+        content = str(resp.read().decode('utf-8').strip())
+        daily_data = content.splitlines()
+        hist_dict = dict()
+        keys = daily_data[0].split(',')
+        for day in daily_data[1:]:
+            day_data = day.split(',')
+            date = day_data[0]
+            hist_dict[date] = \
+                {keys[1]: day_data[1],
+                 keys[2]: day_data[2],
+                 keys[3]: day_data[3],
+                 keys[4]: day_data[4],
+                 keys[5]: day_data[5],
+                 keys[6]: day_data[6]}
+        return hist_dict
